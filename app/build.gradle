@@ -31,18 +31,23 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
 
-    // TODO (STEP 3: Add the google material dependency)
+    // TODO ( Add the google material dependency)
     // We have added the Google Material Dependency
     implementation 'com.google.android.material:material:1.1.0'
 
-    // TODO (STEP 4: As we need to get the current location of device so we need to add this dependency)
+    // TODO (As we need to get the current location of device so we need to add this dependency)
     // This is for getting the location
     implementation 'com.google.android.gms:play-services-location:17.0.0'
 
-    // TODO (STEP 6: Add the dependency for runtime permission handling)
+    // TODO (Add the dependency for runtime permission handling)
     // Dexter runtime permissions
     // https://github.com/Karumi/Dexter
     implementation 'com.karumi:dexter:6.0.1'
+
+    // TODO (Add the Retrofit Network Library.)
+    // https://square.github.io/retrofit/
+    implementation 'com.squareup.retrofit2:retrofit:2.6.2'
+    implementation 'com.squareup.retrofit:converter-gson:2.0.0-beta2'
 
 
     testImplementation 'junit:junit:4.12'

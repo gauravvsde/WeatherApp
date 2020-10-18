@@ -1,4 +1,4 @@
-package com.example.weatherapp
+package com.example.weatherapp.utils
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -7,6 +7,11 @@ import android.os.Build
 
 
 object Constants {
+    // TODO (Add the API key and Base URL and Metric unit here from openweathermap.)
+    const val APP_ID: String = "5fcec7c5518ac58f19e35853bacffc14"
+    const val BASE_URL: String = "http://api.openweathermap.org/data/"
+    const val METRIC_UNIT: String = "metric"
+
     // TODO (Add a function to check the network connection is available or not.)
     /**
      * This function is used check the weather the device is connected to the Internet or not.
