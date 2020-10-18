@@ -164,8 +164,37 @@ class MainActivity : AppCompatActivity() {
 
             val longitude = mLastLocation.longitude
             Log.i("Current Longitude", "$longitude")
+            getLocationWeatherDetails()
         }
     }
     // END
+
+    // TODO (Create a function to make an api call using Retrofit Network Library.)
+    // START
+    /**
+     * Function is used to get the weather details of the current location based on the latitude longitude
+     */
+    private fun getLocationWeatherDetails(){
+
+        // TODO (STEP 6: Here we will check whether the internet
+        //  connection is available or not using the method which
+        //  we have created in the Constants object.)
+        // START
+        if (Constants.isNetworkAvailable(this@MainActivity)) {
+
+            Toast.makeText(
+                    this@MainActivity,
+                    "You have connected to the internet. Now you can make an api call.",
+                    Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            Toast.makeText(
+                    this@MainActivity,
+                    "No internet connection available.",
+                    Toast.LENGTH_SHORT
+            ).show()
+        }
+        // END
+    }
 
 }
