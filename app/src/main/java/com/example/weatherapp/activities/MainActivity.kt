@@ -2,18 +2,23 @@ package com.example.weatherapp.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import com.example.weatherapp.utils.Constants
 import com.example.weatherapp.R
@@ -25,7 +30,10 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import kotlinx.android.synthetic.main.activity_main.*
 import retrofit.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,6 +41,17 @@ class MainActivity : AppCompatActivity() {
     // START
     // A fused location client variable which is further used to get the user's current location
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
+    // END
+    // TODO ( Create a global variable for ProgressDialog.)
+    // A global variable for the Progress Dialog
+    private var mProgressDialog: Dialog? = null
+
+    // TODO ( Make the latitude and longitude variables global to use it in the menu item selection to refresh the data.)
+    // START
+    // A global variable for Current Latitude
+    private var mLatitude: Double = 0.0
+    // A global variable for Current Longitude
+    private var mLongitude: Double = 0.0
     // END
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,6 +113,27 @@ class MainActivity : AppCompatActivity() {
                     .check()
         }
         // END
+    }
+
+    // TODO ( Now add the override methods to load the menu file and perform the selection on item click.)
+    // START
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            // TODO ( Now finally, make an api call on item selection.)
+            // START
+            R.id.action_refresh -> {
+                getLocationWeatherDetails()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+            // END
+        }
     }
 
     /**
@@ -168,7 +208,7 @@ class MainActivity : AppCompatActivity() {
 
             val longitude = mLastLocation.longitude
             Log.i("Current Longitude", "$longitude")
-            getLocationWeatherDetails(latitude, longitude)
+            getLocationWeatherDetails()
         }
     }
     // END
@@ -177,7 +217,7 @@ class MainActivity : AppCompatActivity() {
     /**
      * Function is used to get the weather details of the current location based on the latitude longitude
      */
-    private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
+    private fun getLocationWeatherDetails() {
 
         if (Constants.isNetworkAvailable(this@MainActivity)) {
 
@@ -209,6 +249,8 @@ class MainActivity : AppCompatActivity() {
              * Here we map the service interface in which we declares the end point and the API type
              *i.e GET, POST and so on along with the request parameter which are required.
              */
+            // creating a WeatherService object which will use our weather service interface.
+            // This will be using our retrofit connection and its going to create weather service.
             val service: WeatherService =
                     retrofit.create<WeatherService>(WeatherService::class.java)
 
@@ -216,11 +258,14 @@ class MainActivity : AppCompatActivity() {
              * Here we pass the required param in the service
              */
             val listCall: Call<WeatherResponse> = service.getWeather(
-                    latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
+                    mLatitude, mLongitude, Constants.METRIC_UNIT, Constants.APP_ID
             )
+
+            showCustomProgressDialog()
 
             // Callback methods are executed using the Retrofit callback executor.
             listCall.enqueue(object : Callback<WeatherResponse> {
+                @RequiresApi(Build.VERSION_CODES.N)
                 @SuppressLint("SetTextI18n")
                 override fun onResponse(
                         response: Response<WeatherResponse>,
@@ -229,10 +274,13 @@ class MainActivity : AppCompatActivity() {
 
                     // Check weather the response is success or not.
                     if (response.isSuccess) {
-
+                        hideProgressDialog()
                         /** The de-serialized response body of a successful response. */
                         val weatherList: WeatherResponse = response.body()
                         Log.i("Response Result", "$weatherList")
+
+                        setupUI(weatherList)
+
                     } else {
                         // If the response is not success then we check the response code.
                         val sc = response.code()
@@ -251,6 +299,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(t: Throwable) {
+                    hideProgressDialog()
                     Log.e("Errorrrrr", t.message.toString())
                 }
             })
@@ -264,4 +313,105 @@ class MainActivity : AppCompatActivity() {
             ).show()
         }
     }
+
+    /**
+     * Method is used to show the Custom Progress Dialog.
+     */
+    private fun showCustomProgressDialog() {
+        mProgressDialog = Dialog(this)
+
+        /*Set the screen content from a layout resource.
+        The resource will be inflated, adding all top-level views to the screen.*/
+        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress)
+
+        //Start the dialog and display it on screen.
+        mProgressDialog!!.show()
+    }
+
+    /**
+     * This function is used to dismiss the progress dialog if it is visible to user.
+     */
+    private fun hideProgressDialog() {
+        if (mProgressDialog != null) {
+            mProgressDialog!!.dismiss()
+        }
+    }
+
+    // TODO ( We have set the values to the UI and also added some required methods for Unit and Time below.)
+    /**
+     * Function is used to set the result in the UI elements.
+     */
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun setupUI(weatherList: WeatherResponse) {
+
+        // For loop to get the required data. And all are populated in the UI.
+        for (z in weatherList.weather.indices) {
+            Log.i("NAMEEEEEEEE", weatherList.weather[z].main)
+
+            // main is here for weather name.
+            tv_main.text = weatherList.weather[z].main
+            tv_main_description.text = weatherList.weather[z].description
+
+            // converting into units to display degree.
+            tv_temp.text =
+                    weatherList.main.temp.toString() + getUnit(application.resources.configuration.locales.toString())
+            // display humidity
+            tv_humidity.text = weatherList.main.humidity.toString() + " per cent"
+            // display min temp.
+            tv_min.text = weatherList.main.tempMin.toString() + " min"
+            //display max temp.
+            tv_max.text = weatherList.main.tempMax.toString() + " max"
+            //display wind speed.
+            tv_speed.text = weatherList.wind.speed.toString()
+
+            tv_name.text = weatherList.name
+            // display country name
+            tv_country.text = weatherList.sys.country
+            tv_sunrise_time.text = unixTime(weatherList.sys.sunrise.toLong())
+            tv_sunset_time.text = unixTime(weatherList.sys.sunset.toLong())
+
+            // Here we update the main icon
+            when (weatherList.weather[z].icon) {
+                "01d" -> iv_main.setImageResource(R.drawable.sunny)
+                "02d" -> iv_main.setImageResource(R.drawable.cloud)
+                "03d" -> iv_main.setImageResource(R.drawable.cloud)
+                "04d" -> iv_main.setImageResource(R.drawable.cloud)
+                "04n" -> iv_main.setImageResource(R.drawable.cloud)
+                "10d" -> iv_main.setImageResource(R.drawable.rain)
+                "11d" -> iv_main.setImageResource(R.drawable.storm)
+                "13d" -> iv_main.setImageResource(R.drawable.snowflake)
+                "01n" -> iv_main.setImageResource(R.drawable.cloud)
+                "02n" -> iv_main.setImageResource(R.drawable.cloud)
+                "03n" -> iv_main.setImageResource(R.drawable.cloud)
+                "10n" -> iv_main.setImageResource(R.drawable.cloud)
+                "11n" -> iv_main.setImageResource(R.drawable.rain)
+                "13n" -> iv_main.setImageResource(R.drawable.snowflake)
+            }
+        }
+    }
+
+    /**
+     * Function is used to get the temperature unit value.
+     */
+    private fun getUnit(value: String): String? {
+        Log.i("unitttttt", value)
+        var value = "°C"
+        if ("US" == value || "LR" == value || "MM" == value) {
+            value = "°F"
+        }
+        return value
+    }
+
+    /**
+     * The function is used to get the formatted time based on the Format and the LOCALE we pass to it.
+     */
+    private fun unixTime(timex: Long): String? {
+        val date = Date(timex * 1000L)
+        @SuppressLint("SimpleDateFormat") val sdf =
+                SimpleDateFormat("HH:mm:ss")
+        sdf.timeZone = TimeZone.getDefault()
+        return sdf.format(date)
+    }
+    // END
+
 }
